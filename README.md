@@ -1,0 +1,1 @@
+# logscale-ingest-microsoft-o365
