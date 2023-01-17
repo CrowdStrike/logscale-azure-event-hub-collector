@@ -6,16 +6,13 @@ on:
     branches:
       - main
       - dev
-      - samples
-      - 'ver_*'
+
   pull_request:
     paths:
       - '**.py'
     branches: 
       - main
       - dev
-      - samples
-      - 'ver_*'
 
 jobs:
   analyze:
@@ -34,4 +31,4 @@ jobs:
     - name: Lint package source with pylint
       run: |
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        pylint . --max-line-length=127 --disable=R0801
+        pylint azure-function-timer-trigger-code --max-line-length=127 --disable=R0801
