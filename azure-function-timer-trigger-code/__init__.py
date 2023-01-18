@@ -4,9 +4,9 @@ import json
 import asyncio
 import os
 import sys
+import warnings
 import backoff
 import requests
-import warnings
 import azure.functions as func
 from azure.eventhub.aio import EventHubConsumerClient
 from azure.eventhub import EventHubConsumerClient as sync_client
