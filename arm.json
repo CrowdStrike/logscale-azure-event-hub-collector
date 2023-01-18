@@ -4,7 +4,7 @@
     "parameters": {
         "FunctionName": {
             "type": "string",
-            "defaultValue": "LogScaleO365",
+            "defaultValue": "LogScale",
             "minLength": 1,
             "maxLength": 11,
             "metadata": {
