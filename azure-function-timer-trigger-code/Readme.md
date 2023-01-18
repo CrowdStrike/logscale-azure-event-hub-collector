@@ -10,7 +10,7 @@
 
 - After loading need to specify all the project details and Instance details to deploy. Ensure the following fields are entered correctly
   > - Resource Group
-  > - Function Name(Default- LogScaleO365)
+  > - Function Name(Default- LogScale)
   > - Eventhub Namespace
   > - Eventhub Name
   > - Shared Access Key(From Eventhub Namespace ->Settings -> Shared Access Policy -> your Policy -> `primary key`)
