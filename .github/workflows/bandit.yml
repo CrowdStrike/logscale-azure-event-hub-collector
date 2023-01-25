@@ -21,4 +21,4 @@ jobs:
         pip install -r requirements.txt
     - name: Analysing the code with bandit
       run: |
-        bandit $(git ls-files '*.py')
+        bandit -r $(git ls-files '*.py')
