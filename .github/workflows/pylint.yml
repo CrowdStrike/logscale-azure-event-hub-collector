@@ -1,18 +1,5 @@
 name: Pylint
-on:
-  push:
-    paths:
-      - '**.py'
-    branches:
-      - main
-      - dev
-
-  pull_request:
-    paths:
-      - '**.py'
-    branches: 
-      - main
-      - dev
+on: [push, pull_request]
 
 jobs:
   analyze:
