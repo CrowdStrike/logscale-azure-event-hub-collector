@@ -1,4 +1,5 @@
 """Azure function collector code for LogScale"""
+# pylint: disable=W0703
 import datetime
 import logging
 import json
