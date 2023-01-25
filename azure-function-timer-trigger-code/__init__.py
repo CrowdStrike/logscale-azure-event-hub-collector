@@ -1,3 +1,4 @@
+"""Azure function collector code for LogScale"""
 import datetime
 import logging
 import json
@@ -20,10 +21,12 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 class CustomException(Exception):
     "Custom Exception raised while failure occurs."
-    pass
 
 
 class Checkpoint:
+    """Checkpoint helper class for azure function code
+    """
+
     def __init__(self) -> None:
         self.connect_str = os.environ.get("AzureWebJobsStorage")
 
@@ -61,19 +64,20 @@ class Checkpoint:
                 checkpoint = checkpoint_dict
                 partition_ids = checkpoint_dict.keys()
                 logging.info(
-                    "CHECKPOINT: starting data fetching from ['partition_id':'sequence_number'] {}".format(
-                        checkpoint_dict
-                    )
-                )
-        except Exception as e:
+                    "CHECKPOINT: starting data fetching from ['partition_id':'sequence_number'] %s",
+                    checkpoint_dict)
+        except Exception as exception:
             logging.error(
-                f"Exception occurred while obtaining latest checkpoint value: {e}")
+                "Exception occurred while obtaining latest checkpoint value %s",
+                exception)
 
         else:
             return checkpnt, checkpoint, partition_ids
 
+        return None
+
+    @staticmethod
     def update_checkpoint(
-            self,
             checkpoint,
             partition_id,
             seq_number,
@@ -91,14 +95,17 @@ class Checkpoint:
         """
         try:
 
-            if partition_id not in self.partition_ids:
+            if partition_id not in partition_ids:
                 partition_ids.append(partition_id)
             checkpoint[partition_id] = seq_number
             logging.info(checkpoint)
-        except Exception as e:
-            logging.error(f"Exception occurred while updating checkpoint {e}")
+        except Exception as exception:
+            logging.error(
+                "Exception occurred while updating checkpoint %s",
+                exception)
         else:
             return checkpoint, partition_ids
+        return None
 
     def update_checkpoint_file(self, checkpoint):
         """Updates the Checkpoint file on blob storage
@@ -115,14 +122,17 @@ class Checkpoint:
             blob_client.upload_blob(checkpoint_str, overwrite=True)
         except IOError:
             pass
-        except Exception as e:
+        except Exception as exception:
             logging.info(
-                f"Execption occurred while updating checkpoint file to blob storage {e}")
+                "Exception occurred while updating checkpoint file to blob storage %s",
+                exception)
 
 
-@backoff.on_exception(
-    backoff.expo, Exception, max_tries=5, raise_on_giveup=False, max_time=30
-)
+@backoff.on_exception(backoff.expo,
+                      requests.exceptions.RequestException,
+                      max_tries=5,
+                      raise_on_giveup=False,
+                      max_time=30)
 def ingest_to_logscale(records):
     """Ingesting records into LogScale Instance.
 
@@ -146,22 +156,29 @@ def ingest_to_logscale(records):
                 "Content-Type": "application/json",
             },
             data=json.dumps(records),
+            timeout=30,
         )
         if response.status_code in [400, 401, 403, 404]:
             raise CustomException(
                 f"Status-code {response.status_code} Exception {response.text}"
             )
-    except CustomException as e:
-        logging.error(f"{e}")
+    except CustomException as exception:
+        logging.error("%s", exception)
         sys.exit(1)
 
-    except Exception as e:
-        logging.error(f"Exception occurred while posting to LogScale {e}")
+    except requests.exceptions.RequestException as exception:
+        logging.error(
+            "Exception occurred while posting to LogScale %s",
+            exception)
+        raise requests.exceptions.RequestException from exception
     else:
         return response.json()
 
 
 class Eventhub:
+    """Eventhub helper class for azure function code
+    """
+
     def __init__(self) -> None:
         self.partition_ids = {}
         self.checkpoint = {}
@@ -182,11 +199,13 @@ class Eventhub:
                 consumer_group="$Default",
                 eventhub_name=self.event_hub_name,
             )
-        except Exception as e:
+        except Exception as exception:
             logging.info(
-                f"Exception occurred while creating an Eventhub client {e}")
+                "Exception occurred while creating an Eventhub client %s",
+                exception)
         else:
             return client
+        return None
 
     def validate_size_and_ingest(
             self,
@@ -198,6 +217,8 @@ class Eventhub:
 
         Args:
             event_data (list)
+            partition_id(string)
+            sequence_number(string)
         """
         # Checking limitation of LogScale endpoint
         # as size of event must be less than 5 mb and
@@ -223,19 +244,29 @@ class Eventhub:
                 if response is None:
                     self.partitions_block_list[partition_id] = False
                     logging.info(
-                        f"Failure occurred at partition id {partition_id} so all the sequence number followed by {sequence_number} will not be updated in this Schedule"
-                    )
+                        """Failure occurred at partition id %s so all the sequence number followed\
+                        by %s will not be updated in this Schedule""",
+                        partition_id,
+                        sequence_number)
                     return False
-                elif response["text"] == "Success" and response["eventCount"] > 0:
+                if response["text"] == "Success" and response["eventCount"] > 0:
                     logging.info(response)
                     return True
 
             return False
-        except Exception as e:
-            logging.info(f"Exception occurred at events validation {e}")
+        except Exception as exception:
+            logging.info(
+                "Exception occurred at events validation: %s",
+                exception)
+        return None
 
-    async def close(self, client):
+    @staticmethod
+    async def close(client):
+        """Close method for azure function
 
+        Args:
+            client (client): Eventhub client
+        """
         await client.close()
 
     async def on_event(self, partitions, event):
@@ -262,7 +293,6 @@ class Eventhub:
                             self.checkpoint,
                             self.partition_ids,
                         ) = Checkpoint.update_checkpoint(
-                            self,
                             self.checkpoint,
                             partition_id,
                             event.sequence_number,
@@ -270,14 +300,14 @@ class Eventhub:
                         )
                 else:
                     logging.info(
-                        f"Not ingesting events for partition id {partition_id}, failure occurred."
-                    )
+                        "Not ingesting events for partition id %d, failure occurred.",
+                        partition_id)
 
             else:
                 Checkpoint.update_checkpoint_file(self, self.checkpoint)
                 self.receive = False
-        except Exception as e:
-            logging.error(f"Exception occurred {e}")
+        except Exception as exception:
+            logging.error("Exception occurred %s", exception)
 
     async def fetch_events(self, client):
         """create eventhub event by ensure_future"""
@@ -297,8 +327,10 @@ class Eventhub:
                 if not self.receive:
                     event_hub_event.cancel()
                     break
-        except Exception as e:
-            logging.error(f"Exception occurred while fetching events {e}")
+        except Exception as exception:
+            logging.error(
+                "Exception occurred while fetching events %s",
+                exception)
 
     def get_eventhub_partitions(self):
         """To get partitions of eventhub.
@@ -314,11 +346,13 @@ class Eventhub:
             )
             for partiton_id in client.get_partition_ids():
                 self.partitions_block_list[partiton_id] = True
-        except Exception as e:
+        except Exception as exception:
             logging.error(
-                f"Exception occurred while fetching Eventhub partitions {e}")
+                "Exception occurred while fetching Eventhub partitions %s",
+                exception)
         else:
             return client.get_partition_ids()
+        return None
 
     def start_event(self):
         """Set eventhub loop"""
@@ -329,9 +363,9 @@ class Eventhub:
             auth_client = self.auth_client()
             self.partition_ids = self.get_eventhub_partitions()
             loop.run_until_complete(self.fetch_events(auth_client))
-            loop.run_until_complete(self.close(auth_client))
-        except Exception as e:
-            logging.info(f"Exception occurred at start event {e}")
+            loop.run_until_complete(Eventhub.close(auth_client))
+        except Exception as exception:
+            logging.info("Exception occurred at start event %s", exception)
 
 
 def main(mytimer: func.TimerRequest) -> None:
