@@ -17,5 +17,6 @@
   > - LogScalehostname(e.g. :-https://cloud.community.humio.com/)
   > - LogScaletoken(Parser token)
   > - FunctionJobSchedule(Cron job scheduler)
+**Note:** Refer [this resource](https://www.npmjs.com/package/cron#available-cron-patterns) for CRON expression.
 - After that go to [Azure](portal.azure.com) search for `function app` 
 - Select Your function App Name and Start function app to collect logs in LogScale instance.
