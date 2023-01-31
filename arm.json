@@ -35,7 +35,7 @@
         "LogScaleHostURL": {
             "type": "string",
             "metadata": {
-                "description": "Specify host name of LogScale Instance"
+                "description": "Specify host URL of LogScale Instance"
               },
             "defaultValue": "https://cloud.community.humio.com"
         },
@@ -46,12 +46,12 @@
               },
             "defaultValue": "<LogScaleIngestToken>"
         },
-        "Logscaleschedule":{
+        "FunctionJobSchedule":{
             "type": "string",
             "metadata": {
-                "description": "Describe the cron job expression to run the function app"
+                "description": "Describe the cron expression to run the function app"
             },
-            "defaultValue": "<cronscheduler>"
+            "defaultValue": "<cron_scheduler_expression>"
         }
         
     },
@@ -204,7 +204,7 @@
                         "EventhubNamespace": "[parameters('EventhubNamespace')]",
                         "SharedAccessKey": "[parameters('SharedAccessKey')]",
                         "Eventhubconnstring": "[variables('Eventhubconnstr')]",
-                        "Schedule": "[parameters('Logscaleschedule')]",
+                        "Schedule": "[parameters('FunctionJobSchedule')]",
                         "WEBSITE_RUN_FROM_PACKAGE": "<link-to-azure-function-zip-file>"
                     }
                 }
