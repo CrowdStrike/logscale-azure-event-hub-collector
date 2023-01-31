@@ -35,7 +35,7 @@
         "LogScaleHostURL": {
             "type": "string",
             "metadata": {
-                "description": "Specify host URL of LogScale Instance"
+                "description": "Specify host name of LogScale Instance"
               },
             "defaultValue": "https://cloud.community.humio.com"
         },
