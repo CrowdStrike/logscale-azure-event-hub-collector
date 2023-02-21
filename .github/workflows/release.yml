@@ -45,3 +45,8 @@ jobs:
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: arm.json
+          path: .
