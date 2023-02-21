@@ -9,14 +9,19 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FILE_NAME: azure_function_timer_trigger_code.zip
+      JSON_FILE_NAME: arm.json
     steps:
       - uses: actions/checkout@v2
-      - name: Install more-utils
+      - name: install more-utils
         run: sudo apt-get install moreutils
       - name: Set env
         run:  echo RELEASE_VERSION=${GITHUB_REF#refs/*/} >> $GITHUB_ENV && echo $RELEASE_VERSION
-      - name: Create ZIP
-        run: tar -cvf ${{ env.FILE_NAME }} azure_function_timer_trigger_code
+      - name: "Create ZIP"
+        run: tar -cvf ${{ env.FILE_NAME }} join_app
+      - name: Update the arm.json to set a link to the new Azure function zip code.
+        env: 
+          URL: ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ env.RELEASE_VERSION }}/${{ env.FILE_NAME }}
+        run: jq --arg url "$URL" '.resources[4].resources[0].properties.WEBSITE_RUN_FROM_PACKAGE=$url' ${{ env.JSON_FILE_NAME }} | sponge ${{ env.JSON_FILE_NAME }}
       - name: Create Release
         uses: svenstaro/upload-release-action@v2
         with:
@@ -26,27 +31,10 @@ jobs:
           tag: ${{ env.RELEASE_VERSION }}
           overwrite: true
           body: "Automatic release. See changelog for updates"
-      - name: Update the WEBSITE_RUN_FROM_PACKAGE token in the arm.json file.
-        env: 
-          URL: ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ env.RELEASE_VERSION }}/${{ env.FILE_NAME }}
-        run: jq --arg url "$URL" '.resources[4].resources[0].properties.WEBSITE_RUN_FROM_PACKAGE=$url' arm.json | sponge arm.json
-      - name: Check if there are any changes
-        id: verify_diff
-        run: |
-          git diff --quiet arm.json|| echo "changed=true" >> $GITHUB_OUTPUT
-      - name: Commit arm.json file
-        if: steps.verify_diff.outputs.changed == 'true'
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git commit -am "Upadting WEBSITE_RUN_FROM_PACKAGE token to point to the new release"
-      - name: Push changes
-        if: steps.verify_diff.outputs.changed == 'true'
-        uses: ad-m/github-push-action@master
+      - name: Add ${{ env.JSON_FILE_NAME }} to release
+        uses: svenstaro/upload-release-action@v2
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: arm.json
-          path: .
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.JSON_FILE_NAME }}
+          asset_name: ${{ env.JSON_FILE_NAME }}
+          tag: ${{ env.RELEASE_VERSION }}
