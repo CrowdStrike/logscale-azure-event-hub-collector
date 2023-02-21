@@ -12,13 +12,13 @@ jobs:
       JSON_FILE_NAME: arm.json
     steps:
       - uses: actions/checkout@v2
-      - name: install more-utils
+      - name: Install more-utils
         run: sudo apt-get install moreutils
       - name: Set env
         run:  echo RELEASE_VERSION=${GITHUB_REF#refs/*/} >> $GITHUB_ENV && echo $RELEASE_VERSION
       - name: "Create ZIP"
         run: tar -cvf ${{ env.FILE_NAME }} join_app
-      - name: Update the arm.json to set a link to the new Azure function zip code.
+      - name: Update the WEBSITE_RUN_FROM_PACKAGE token in the arm.json file.
         env: 
           URL: ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ env.RELEASE_VERSION }}/${{ env.FILE_NAME }}
         run: jq --arg url "$URL" '.resources[4].resources[0].properties.WEBSITE_RUN_FROM_PACKAGE=$url' ${{ env.JSON_FILE_NAME }} | sponge ${{ env.JSON_FILE_NAME }}
