@@ -205,7 +205,7 @@
                         "SharedAccessKey": "[parameters('SharedAccessKey')]",
                         "Eventhubconnstring": "[variables('Eventhubconnstr')]",
                         "Schedule": "[parameters('FunctionJobSchedule')]",
-                        "WEBSITE_RUN_FROM_PACKAGE": "https://github.com/CrowdStrike/logscale-azure-event-hub-collector/blob/main/azure_function_timer_trigger_code.zip?raw=true"
+                        "WEBSITE_RUN_FROM_PACKAGE": "<link to ZIP file>"
                     }
                 }
             ]

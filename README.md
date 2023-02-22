@@ -7,7 +7,7 @@ The Azure function was built for and has been tested with collecting specific Mi
 ## Deploy and configure LogScale Azure Event Hub Collector
 
 
-* Download the `ARM.json` file and save locally
+* Download the `ARM.json` file from the Release section and save it locally
 * Go to [Azure Portal](portal.azure.com)
 * Search for `Deploy a custom template`
 * Select `Load file` and upload the ARM.json file
