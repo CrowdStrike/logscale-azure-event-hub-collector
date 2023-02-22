@@ -21,7 +21,7 @@ jobs:
       - name: Update the WEBSITE_RUN_FROM_PACKAGE token in the arm.json file.
         env: 
           URL: ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ env.RELEASE_VERSION }}/${{ env.ZIP_FILE_NAME }}
-        run: jq --arg url "$URL" '.resources[4].resources[0].properties.WEBSITE_RUN_FROM_PACKAGE=$url' ${{ env.JSON_FILE_NAME }} | sponge ${{ env.JSON_FILE_NAME }}
+        run: jq --arg url "$URL" '.resources[4].resources[0].properties.WEBSITE_RUN_FROM_PACKAGE=$url' ./arm_template/${{ env.JSON_FILE_NAME }} | sponge ${{ env.JSON_FILE_NAME }}
       - name: Create Release
         uses: svenstaro/upload-release-action@v2
         with:
