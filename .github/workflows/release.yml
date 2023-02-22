@@ -8,7 +8,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     env:
-      FILE_NAME: azure_function_timer_trigger_code.zip
+      ZIP_FILE_NAME: azure_function_timer_trigger_code.zip
       JSON_FILE_NAME: arm.json
     steps:
       - uses: actions/checkout@v2
@@ -17,17 +17,17 @@ jobs:
       - name: Set env
         run:  echo RELEASE_VERSION=${GITHUB_REF#refs/*/} >> $GITHUB_ENV && echo $RELEASE_VERSION
       - name: "Create ZIP"
-        run: tar -cvf ${{ env.FILE_NAME }} join_app
+        run: tar -cvf ${{ env.ZIP_FILE_NAME }} azure_function_timer_trigger_code
       - name: Update the WEBSITE_RUN_FROM_PACKAGE token in the arm.json file.
         env: 
-          URL: ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ env.RELEASE_VERSION }}/${{ env.FILE_NAME }}
+          URL: ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ env.RELEASE_VERSION }}/${{ env.ZIP_FILE_NAME }}
         run: jq --arg url "$URL" '.resources[4].resources[0].properties.WEBSITE_RUN_FROM_PACKAGE=$url' ${{ env.JSON_FILE_NAME }} | sponge ${{ env.JSON_FILE_NAME }}
       - name: Create Release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.FILE_NAME }}
-          asset_name: ${{ env.FILE_NAME }}
+          file: ${{ env.ZIP_FILE_NAME }}
+          asset_name: ${{ env.ZIP_FILE_NAME }}
           tag: ${{ env.RELEASE_VERSION }}
           overwrite: true
           body: "Automatic release. See changelog for updates"
