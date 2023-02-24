@@ -18,6 +18,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install flake8
+        pip install -r azure_function_timer_trigger_code/requirements.txt
     - name: Analysing the code with flake8
       run: |
         flake8 $(git ls-files '*.py') --max-line-length=127
