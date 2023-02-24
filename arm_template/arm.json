@@ -49,7 +49,7 @@
         "FunctionJobSchedule": {
             "type": "string",
             "metadata": {
-                "description": "Describe the cron expression to run the function app"
+                "description": "Provide the NCRONTAB expressions for the timer trigger of Azure function"
             },
             "defaultValue": "0 */5 * * * *"
         }
@@ -199,7 +199,7 @@
                         "ConsumerGroup": "[parameters('ConsumerGroup')]",
                         "Eventhubconnstring": "[parameters('EventhubConnectionString')]",
                         "Schedule": "[parameters('FunctionJobSchedule')]",
-                        "WEBSITE_RUN_FROM_PACKAGE": "https://github.com/jenil-shah-crest/azure-test/blob/main/logscale_azure_function.zip?raw=true"
+                        "WEBSITE_RUN_FROM_PACKAGE": "<link to ZIP file>"
                     }
                 }
             ]
