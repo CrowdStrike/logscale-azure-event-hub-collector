@@ -22,4 +22,4 @@ jobs:
       - name: Analysing the code with bandit
         run: |
           cd azure_function_timer_trigger_code
-          bandit --exclude ".python_packages" -r .
+          bandit -x ".python_packages" -r .
