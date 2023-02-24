@@ -22,4 +22,4 @@ jobs:
     - name: Analysing the code with flake8
       run: |
         cd azure_function_timer_trigger_code
-        flake8 $(git ls-files '*.py') --max-line-length=127 --exclude=./.python_packages
+        flake8 $(git ls-files '*.py') --max-line-length=127 --exclude=.python_packages/lib/site-packages/*.py
