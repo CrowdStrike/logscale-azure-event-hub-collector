@@ -15,8 +15,8 @@ from azure.eventhub import EventHubConsumerClient as sync_client
 from azure.storage.blob import ContainerClient
 
 LOG_BATCHES = 5000
-CONTAINER_NAME = "checkpoint-store"
-BLOB_NAME = "checkpoint.json"
+CONTAINER_NAME = "logscale-checkpoint-store"
+BLOB_NAME = "logscale-checkpoint.json"
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
@@ -50,7 +50,7 @@ class Checkpoint:
             if not service.exists():
                 service.create_container()
                 for partition_id in partition_ids:
-                    checkpoint[partition_id] = 0
+                    checkpoint[partition_id] = -1
                 checkpoint_str = json.dumps(checkpoint)
                 # Uploading default checkpoint.json file in blob storage
                 blob_client = service.get_blob_client(blob=BLOB_NAME)
@@ -151,7 +151,7 @@ def ingest_to_logscale(records):
     try:
         logscale_token = os.environ.get("LogScaleIngestToken")
         response = requests.post(
-            url=os.environ.get("LogScaleIngestURL"),
+            url=os.environ.get("LogScaleHostURL").rstrip('/')+"/api/v1/ingest/hec",
             headers={
                 "Authorization": f"Bearer {logscale_token}",
                 "Content-Type": "application/json",
@@ -197,7 +197,7 @@ class Eventhub:
         try:
             client = EventHubConsumerClient.from_connection_string(
                 conn_str=self.event_hub_connec_str,
-                consumer_group="$Default",
+                consumer_group=os.environ.get('ConsumerGroup'),
                 eventhub_name=self.event_hub_name,
             )
         except Exception as exception:
@@ -232,10 +232,12 @@ class Eventhub:
                 or len(event_data) > LOG_BATCHES
             ):
                 self.validate_size_and_ingest(
-                    event_data[: len(event_data) // 2], partition_id, sequence_number
+                    event_data[: len(event_data) //
+                               2], partition_id, sequence_number
                 )
                 self.validate_size_and_ingest(
-                    event_data[len(event_data) // 2:], partition_id, sequence_number
+                    event_data[len(event_data) //
+                               2:], partition_id, sequence_number
                 )
             if (
                 float(str(event_data).__sizeof__() / 10 ** 6) < 4.8
@@ -281,6 +283,7 @@ class Eventhub:
         """
         try:
             partition_id = partitions.partition_id
+            checkpoint_obj_update = Checkpoint()
             if event is not None:
                 if self.partitions_block_list[partition_id] is True:
                     event_data_str = event.body_as_str(encoding="UTF-8")
@@ -295,7 +298,7 @@ class Eventhub:
                         (
                             self.checkpoint,
                             self.partition_ids,
-                        ) = Checkpoint.update_checkpoint(
+                        ) = checkpoint_obj_update.update_checkpoint(
                             self.checkpoint,
                             partition_id,
                             event.sequence_number,
@@ -307,7 +310,7 @@ class Eventhub:
                         partition_id)
 
             else:
-                Checkpoint.update_checkpoint_file(self, self.checkpoint)
+                checkpoint_obj_update.update_checkpoint_file(self.checkpoint)
                 self.receive = False
         except Exception as exception:
             logging.error("Exception occurred %s", exception)
@@ -315,8 +318,9 @@ class Eventhub:
     async def fetch_events(self, client):
         """Create eventhub event by ensure_future."""
         try:
-            checkpoint, self.checkpoint, self.partition_ids = Checkpoint.get_checkpoint(
-                self, self.checkpoint, self.partition_ids)
+            checkpoint_obj = Checkpoint()
+            checkpoint, self.checkpoint, self.partition_ids = checkpoint_obj.get_checkpoint(
+                self.checkpoint, self.partition_ids)
 
             event_hub_event = asyncio.ensure_future(
                 client.receive(
@@ -344,7 +348,7 @@ class Eventhub:
         try:
             client = sync_client.from_connection_string(
                 conn_str=self.event_hub_connec_str,
-                consumer_group="$Default",
+                consumer_group=os.environ.get('ConsumerGroup'),
                 eventhub_name=self.event_hub_name,
             )
             for partiton_id in client.get_partition_ids():
@@ -364,9 +368,10 @@ class Eventhub:
             asyncio.set_event_loop(loop)
             # Authenticating the eventhub client
             auth_client = self.auth_client()
+            eventhub_obj = Eventhub()
             self.partition_ids = self.get_eventhub_partitions()
             loop.run_until_complete(self.fetch_events(auth_client))
-            loop.run_until_complete(Eventhub.close(auth_client))
+            loop.run_until_complete(eventhub_obj.close(auth_client))
         except Exception as exception:
             logging.info("Exception occurred at start event %s", exception)
 
