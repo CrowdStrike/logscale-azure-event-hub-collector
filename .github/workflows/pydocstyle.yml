@@ -30,4 +30,5 @@ jobs:
         pip install -r azure_function_timer_trigger_code/requirements.txt
     - name: Lint package source with pydocstyle
       run: |
-        pydocstyle azure*/*.py
+        cd azure_function_timer_trigger_code
+        pydocstyle logscale*/*.py
