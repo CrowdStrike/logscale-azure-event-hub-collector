@@ -20,7 +20,7 @@ jobs:
       - name: "Create ZIP"
         run: |
           apt-get install zip
-          (cd ${{ env.DIR_NAME }} && zip -r ../${{ ZIP_FILE_NAME }} .)
+          (cd ${{ env.DIR_NAME }} && zip -r ../${{ env.ZIP_FILE_NAME }} .)
       - name: Update the WEBSITE_RUN_FROM_PACKAGE token in the arm.json file.
         env: 
           URL: ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ env.RELEASE_VERSION }}/${{ env.ZIP_FILE_NAME }}
