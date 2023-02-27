@@ -8,7 +8,8 @@ jobs:
   release:
     runs-on: ubuntu-latest
     env:
-      ZIP_FILE_NAME: azure_function_timer_trigger_code.zip
+      ZIP_FILE_NAME: logscale_azure_function.zip
+      DIR_NAME: azure_function_timer_trigger_code
       JSON_FILE_NAME: arm.json
     steps:
       - uses: actions/checkout@v2
@@ -17,7 +18,9 @@ jobs:
       - name: Set env
         run:  echo RELEASE_VERSION=${GITHUB_REF#refs/*/} >> $GITHUB_ENV && echo $RELEASE_VERSION
       - name: "Create ZIP"
-        run: tar -cvf ${{ env.ZIP_FILE_NAME }} azure_function_timer_trigger_code
+        run: |
+          apt-get install zip
+          (cd ${{ env.DIR_NAME }} && zip -r ../${{ ZIP_FILE_NAME }} .)
       - name: Update the WEBSITE_RUN_FROM_PACKAGE token in the arm.json file.
         env: 
           URL: ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ env.RELEASE_VERSION }}/${{ env.ZIP_FILE_NAME }}
