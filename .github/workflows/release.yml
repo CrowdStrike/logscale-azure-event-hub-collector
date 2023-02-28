@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*.*.*'
+
+env:
+  AZURE_FUNCTIONAPP_NAME: 'logscale_azure_function'   # set this to your function app name on Azure
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'azure_function_timer_trigger_code'       # set this to the path to your function app project, defaults to the repository root
+  PYTHON_VERSION: '3.9'                     # set this to the python version to use (e.g. '3.6', '3.7', '3.8')
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -17,13 +23,35 @@ jobs:
         run: sudo apt-get install moreutils
       - name: Set env
         run:  echo RELEASE_VERSION=${GITHUB_REF#refs/*/} >> $GITHUB_ENV && echo $RELEASE_VERSION
-      - name: "Create ZIP"
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }} Environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: 'Resolve Project Dependencies Using Pip'
+        shell: bash
         run: |
-          (cd ${{ env.DIR_NAME }} && zip -r ../${{ env.ZIP_FILE_NAME }} .)
+          pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt --target=".python_packages/lib/site-packages"
+          popd
+
+
       - name: Update the WEBSITE_RUN_FROM_PACKAGE token in the arm.json file.
         env: 
           URL: ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ env.RELEASE_VERSION }}/${{ env.ZIP_FILE_NAME }}
-        run: jq --arg url "$URL" '.resources[4].resources[0].properties.WEBSITE_RUN_FROM_PACKAGE=$url' ./arm_template/${{ env.JSON_FILE_NAME }} | sponge ${{ env.JSON_FILE_NAME }}
+        run: |
+          jq --arg url "$URL" '.resources[4].resources[0].properties.WEBSITE_RUN_FROM_PACKAGE=$url' ./arm_template/${{ env.JSON_FILE_NAME }} | sponge ${{ env.JSON_FILE_NAME }}
+          jq --arg version "$RELEASE_VERSION" '.contentVersion=$version' ./arm_template/${{ env.JSON_FILE_NAME }} | sponge ${{ env.JSON_FILE_NAME }}
+          cp ${{ env.JSON_FILE_NAME }} /tmp/arm-${{ env.RELEASE_VERSION }}.json
+      - name: "update version in python"
+        run: sed -i '' 's|__version__ =.*|__version__ = "1.0.1"|' azure_function_timer_trigger_code/logscale_azure_function/__init__.py
+
+
+      - name: "Create ZIP"
+        run: |
+          (cd ${{ env.DIR_NAME }} && zip -r ../${{ env.ZIP_FILE_NAME }} .)
+          
       - name: Create Release
         uses: svenstaro/upload-release-action@v2
         with:
@@ -37,6 +65,6 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.JSON_FILE_NAME }}
+          file: /tmp/arm-${{ env.RELEASE_VERSION }}.json
           asset_name: ${{ env.JSON_FILE_NAME }}
           tag: ${{ env.RELEASE_VERSION }}
