@@ -14,7 +14,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     env:
-      ZIP_FILE_NAME: logscale_azure_function.zip
+      ZIP_FILE_NAME: logscale_azure_function
       DIR_NAME: azure_function_timer_trigger_code
       JSON_FILE_NAME: arm.json
     steps:
@@ -35,29 +35,25 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt --target=".python_packages/lib/site-packages"
           popd
-
-
       - name: Update the WEBSITE_RUN_FROM_PACKAGE token in the arm.json file.
         env: 
-          URL: ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ env.RELEASE_VERSION }}/${{ env.ZIP_FILE_NAME }}
+          URL: ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ env.RELEASE_VERSION }}/${{ env.ZIP_FILE_NAME }}-${{ env.RELEASE_VERSION }}.zip
         run: |
           jq --arg url "$URL" '.resources[4].resources[0].properties.WEBSITE_RUN_FROM_PACKAGE=$url' ./arm_template/${{ env.JSON_FILE_NAME }} | sponge ${{ env.JSON_FILE_NAME }}
-          jq --arg version "$RELEASE_VERSION" '.contentVersion=$version' ./arm_template/${{ env.JSON_FILE_NAME }} | sponge ${{ env.JSON_FILE_NAME }}
+          jq --arg version "$RELEASE_VERSION" '.contentVersion=$version' ${{ env.JSON_FILE_NAME }} | sponge ${{ env.JSON_FILE_NAME }}
           cp ${{ env.JSON_FILE_NAME }} /tmp/arm-${{ env.RELEASE_VERSION }}.json
       - name: "update version in python"
-        run: sed -i '' 's|__version__ =.*|__version__ = "1.0.1"|' azure_function_timer_trigger_code/logscale_azure_function/__init__.py
-
-
+        run: |
+             sed -i 's/__version__ = .*/__version__ = "'${{ env.RELEASE_VERSION }}'"/' azure_function_timer_trigger_code/logscale_azure_function/__init__.py
       - name: "Create ZIP"
         run: |
-          (cd ${{ env.DIR_NAME }} && zip -r ../${{ env.ZIP_FILE_NAME }} .)
-          
+          (cd ${{ env.DIR_NAME }} && zip -r ../${{ env.ZIP_FILE_NAME }}-${{ env.RELEASE_VERSION }}.zip .)
       - name: Create Release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.ZIP_FILE_NAME }}
-          asset_name: ${{ env.ZIP_FILE_NAME }}
+          file: ${{ env.ZIP_FILE_NAME }}-${{ env.RELEASE_VERSION }}.zip
+          asset_name: ${{ env.ZIP_FILE_NAME }}-${{ env.RELEASE_VERSION }}.zip
           tag: ${{ env.RELEASE_VERSION }}
           overwrite: true
           body: "Automatic release. See changelog for updates"
@@ -66,5 +62,5 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: /tmp/arm-${{ env.RELEASE_VERSION }}.json
-          asset_name: ${{ env.JSON_FILE_NAME }}
+          asset_name: arm-${{ env.RELEASE_VERSION }}.json
           tag: ${{ env.RELEASE_VERSION }}
