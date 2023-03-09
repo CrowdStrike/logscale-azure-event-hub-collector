@@ -125,3 +125,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+#Azure function specific exclusions
+.python_packages

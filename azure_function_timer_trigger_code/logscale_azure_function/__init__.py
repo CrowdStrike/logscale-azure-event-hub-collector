@@ -1,4 +1,5 @@
 """Azure function collector code for LogScale."""
+__version__ = "1.0.1"
 # pylint: disable=W0703
 import datetime
 import logging
@@ -151,7 +152,8 @@ def ingest_to_logscale(records):
     try:
         logscale_token = os.environ.get("LogScaleIngestToken")
         response = requests.post(
-            url=os.environ.get("LogScaleHostURL").rstrip('/')+"/api/v1/ingest/hec",
+            url=os.environ.get("LogScaleHostURL").rstrip(
+                '/')+"/api/v1/ingest/hec",
             headers={
                 "Authorization": f"Bearer {logscale_token}",
                 "Content-Type": "application/json",
