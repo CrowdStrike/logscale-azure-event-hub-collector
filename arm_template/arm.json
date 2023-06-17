@@ -30,7 +30,7 @@
             "metadata": {
                 "description": "Name of custom or default Consumer group  of Eventhub created for LogScale"
             },
-            "defaultValue": "$Default"
+            "defaultValue": "cwd"
         },
         "LogScaleHostURL": {
             "type": "string",
