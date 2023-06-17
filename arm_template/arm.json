@@ -3,7 +3,7 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "FunctionName": {
-            "type": "string",
+            "type": "String",
             "defaultValue": "LogScale",
             "minLength": 1,
             "maxLength": 11,
@@ -12,42 +12,42 @@
             }
         },
         "EventhubName": {
-            "type": "string",
+            "type": "String",
             "metadata": {
                 "description": "Name of Eventhub created for LogScale"
             },
             "defaultValue": "<EventhubName>"
         },
         "EventhubConnectionString": {
-            "type": "string",
+            "type": "String",
             "metadata": {
                 "description": "Connection String of Eventhub created for LogScale"
             },
             "defaultValue": "<EventhubConnectionString>"
         },
         "ConsumerGroup": {
-            "type": "string",
+            "type": "String",
             "metadata": {
                 "description": "Name of custom or default Consumer group  of Eventhub created for LogScale"
             },
             "defaultValue": "$Default"
         },
         "LogScaleHostURL": {
-            "type": "string",
+            "type": "String",
             "metadata": {
                 "description": "Specify host name of LogScale Instance"
             },
             "defaultValue": "https://cloud.community.humio.com"
         },
         "LogScaleIngestToken": {
-            "type": "string",
+            "type": "String",
             "metadata": {
                 "description": "Specify LogScale parser token"
             },
             "defaultValue": "<LogScaleIngestToken>"
         },
         "FunctionJobSchedule": {
-            "type": "string",
+            "type": "String",
             "metadata": {
                 "description": "Provide the NCRONTAB expressions for the timer trigger of Azure function"
             },
