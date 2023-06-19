@@ -7,6 +7,8 @@ import json
 import asyncio
 import os
 import sys
+import time
+import uuid
 import warnings
 import backoff
 import requests
@@ -289,8 +291,24 @@ class Eventhub:
             if event is not None:
                 if self.partitions_block_list[partition_id] is True:
                     event_data_str = event.body_as_str(encoding="UTF-8")
-                    event_data_str = event_data_str.replace("records", "event")
+
+                    # These values are constants should be on every event
+                    collect_attributes = {"@collect": {}}
+                    collect_attributes["@collect"]["channel"] = self.event_hub_name
+                    collect_attributes["@collect"]["agent"] = "logscale-azure-event-hub-collector"
+                    collect_attributes["@collect"]["timestamp"] = time.time()
+                    collect_attributes["@collect"]["timezone"] = "UTC"
+                    collect_attributes["@collect"]["source"] = uuid.uuid4()
+
                     event_data = json.loads(event_data_str)
+
+                    # We happen to be able to use this format but need to change records to event
+                    event_data["event"] = event_data.pop("records")
+
+                    for idx in enumerate(event_data["event"]):
+                        event_data["event"][idx].update(collect_attributes)
+                        event_data["event"][idx]["@collect"]["id"] = uuid.uuid4()
+
                     flag_checkpoint = self.validate_size_and_ingest(
                         event_data["event"], partition_id, event.sequence_number)
                     if flag_checkpoint:
