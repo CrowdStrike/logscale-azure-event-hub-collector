@@ -67,11 +67,13 @@ class Checkpoint:
                 partition_ids = checkpoint_dict.keys()
                 logging.info(
                     "CHECKPOINT: starting data fetching from ['partition_id':'sequence_number'] %s",
-                    checkpoint_dict)
+                    checkpoint_dict,
+                )
         except Exception as exception:
             logging.error(
                 "Exception occurred while obtaining latest checkpoint value %s",
-                exception)
+                exception,
+            )
 
         else:
             return checkpnt, checkpoint, partition_ids
@@ -79,11 +81,7 @@ class Checkpoint:
         return None
 
     @staticmethod
-    def update_checkpoint(
-            checkpoint,
-            partition_id,
-            seq_number,
-            partition_ids):
+    def update_checkpoint(checkpoint, partition_id, seq_number, partition_ids):
         """Update the checkpoint locally.
 
         Args:
@@ -96,15 +94,14 @@ class Checkpoint:
             dict: checkpoint dict
         """
         try:
-
             if partition_id not in partition_ids:
                 partition_ids.append(partition_id)
             checkpoint[partition_id] = seq_number
             logging.info(checkpoint)
         except Exception as exception:
             logging.error(
-                "Exception occurred while updating checkpoint %s",
-                exception)
+                "Exception occurred while updating checkpoint %s", exception
+            )
         else:
             return checkpoint, partition_ids
         return None
@@ -127,14 +124,17 @@ class Checkpoint:
         except Exception as exception:
             logging.info(
                 "Exception occurred while updating checkpoint file to blob storage %s",
-                exception)
+                exception,
+            )
 
 
-@backoff.on_exception(backoff.expo,
-                      requests.exceptions.RequestException,
-                      max_tries=5,
-                      raise_on_giveup=False,
-                      max_time=30)
+@backoff.on_exception(
+    backoff.expo,
+    requests.exceptions.RequestException,
+    max_tries=5,
+    raise_on_giveup=False,
+    max_time=30,
+)
 def ingest_to_logscale(records):
     """Ingesting records into LogScale Instance.
 
@@ -152,8 +152,8 @@ def ingest_to_logscale(records):
     try:
         logscale_token = os.environ.get("LogScaleIngestToken")
         response = requests.post(
-            url=os.environ.get("LogScaleHostURL").rstrip(
-                '/')+"/api/v1/ingest/hec",
+            url=os.environ.get("LogScaleHostURL").rstrip("/")
+            + "/api/v1/ingest/hec",
             headers={
                 "Authorization": f"Bearer {logscale_token}",
                 "Content-Type": "application/json",
@@ -171,8 +171,8 @@ def ingest_to_logscale(records):
 
     except requests.exceptions.RequestException as exception:
         logging.error(
-            "Exception occurred while posting to LogScale %s",
-            exception)
+            "Exception occurred while posting to LogScale %s", exception
+        )
         raise requests.exceptions.RequestException from exception
     else:
         return response.json()
@@ -199,22 +199,21 @@ class Eventhub:
         try:
             client = EventHubConsumerClient.from_connection_string(
                 conn_str=self.event_hub_connec_str,
-                consumer_group=os.environ.get('ConsumerGroup'),
+                consumer_group=os.environ.get("ConsumerGroup"),
                 eventhub_name=self.event_hub_name,
             )
         except Exception as exception:
             logging.info(
                 "Exception occurred while creating an Eventhub client %s",
-                exception)
+                exception,
+            )
         else:
             return client
         return None
 
     def validate_size_and_ingest(
-            self,
-            event_data: list,
-            partition_id,
-            sequence_number):
+        self, event_data: list, partition_id, sequence_number
+    ):
         """Validate event size.
 
         Event size of the less than 5mb and
@@ -230,19 +229,21 @@ class Eventhub:
         # length of event must be less than 5000 records.
         try:
             if (
-                float(str(event_data).__sizeof__() / 10 ** 6) > 4.8
+                float(str(event_data).__sizeof__() / 10**6) > 4.8
                 or len(event_data) > LOG_BATCHES
             ):
                 self.validate_size_and_ingest(
-                    event_data[: len(event_data) //
-                               2], partition_id, sequence_number
+                    event_data[: len(event_data) // 2],
+                    partition_id,
+                    sequence_number,
                 )
                 self.validate_size_and_ingest(
-                    event_data[len(event_data) //
-                               2:], partition_id, sequence_number
+                    event_data[len(event_data) // 2 :],
+                    partition_id,
+                    sequence_number,
                 )
             if (
-                float(str(event_data).__sizeof__() / 10 ** 6) < 4.8
+                float(str(event_data).__sizeof__() / 10**6) < 4.8
                 and len(event_data) < LOG_BATCHES
             ):
                 self.event_data_dict["event"] = event_data
@@ -254,17 +255,21 @@ class Eventhub:
                         """Failure occurred at partition id %s so all the sequence number followed\
                         by %s will not be updated in this Schedule""",
                         partition_id,
-                        sequence_number)
+                        sequence_number,
+                    )
                     return False
-                if response["text"] == "Success" and response["eventCount"] > 0:
+                if (
+                    response["text"] == "Success"
+                    and response["eventCount"] > 0
+                ):
                     logging.info(response)
                     return True
 
             return False
         except Exception as exception:
             logging.info(
-                "Exception occurred at events validation: %s",
-                exception)
+                "Exception occurred at events validation: %s", exception
+            )
         return None
 
     @staticmethod
@@ -292,7 +297,10 @@ class Eventhub:
                     event_data_str = event_data_str.replace("records", "event")
                     event_data = json.loads(event_data_str)
                     flag_checkpoint = self.validate_size_and_ingest(
-                        event_data["event"], partition_id, event.sequence_number)
+                        event_data["event"],
+                        partition_id,
+                        event.sequence_number,
+                    )
                     if flag_checkpoint:
                         # Update the checkpoint so that the
                         # program doesn't read the events that it
@@ -309,7 +317,8 @@ class Eventhub:
                 else:
                     logging.info(
                         "Not ingesting events for partition id %d, failure occurred.",
-                        partition_id)
+                        partition_id,
+                    )
 
             else:
                 checkpoint_obj_update.update_checkpoint_file(self.checkpoint)
@@ -321,8 +330,13 @@ class Eventhub:
         """Create eventhub event by ensure_future."""
         try:
             checkpoint_obj = Checkpoint()
-            checkpoint, self.checkpoint, self.partition_ids = checkpoint_obj.get_checkpoint(
-                self.checkpoint, self.partition_ids)
+            (
+                checkpoint,
+                self.checkpoint,
+                self.partition_ids,
+            ) = checkpoint_obj.get_checkpoint(
+                self.checkpoint, self.partition_ids
+            )
 
             event_hub_event = asyncio.ensure_future(
                 client.receive(
@@ -338,8 +352,8 @@ class Eventhub:
                     break
         except Exception as exception:
             logging.error(
-                "Exception occurred while fetching events %s",
-                exception)
+                "Exception occurred while fetching events %s", exception
+            )
 
     def get_eventhub_partitions(self):
         """Get partitions of eventhub.
@@ -350,7 +364,7 @@ class Eventhub:
         try:
             client = sync_client.from_connection_string(
                 conn_str=self.event_hub_connec_str,
-                consumer_group=os.environ.get('ConsumerGroup'),
+                consumer_group=os.environ.get("ConsumerGroup"),
                 eventhub_name=self.event_hub_name,
             )
             for partiton_id in client.get_partition_ids():
@@ -358,7 +372,8 @@ class Eventhub:
         except Exception as exception:
             logging.error(
                 "Exception occurred while fetching Eventhub partitions %s",
-                exception)
+                exception,
+            )
         else:
             return client.get_partition_ids()
         return None
@@ -381,8 +396,10 @@ class Eventhub:
 def main(mytimer: func.TimerRequest) -> None:
     """Begin main routine."""
     utc_timestamp = (
-        datetime.datetime.utcnow().replace(
-            tzinfo=datetime.timezone.utc).isoformat())
+        datetime.datetime.utcnow()
+        .replace(tzinfo=datetime.timezone.utc)
+        .isoformat()
+    )
     event_obj = Eventhub()
     event_obj.start_event()
 
