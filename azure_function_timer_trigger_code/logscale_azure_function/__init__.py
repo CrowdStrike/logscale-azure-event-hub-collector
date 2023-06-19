@@ -8,6 +8,7 @@ import asyncio
 import os
 import sys
 import warnings
+import zlib
 import backoff
 import requests
 import azure.functions as func
@@ -130,6 +131,9 @@ class Checkpoint:
                 exception)
 
 
+logscale_session = requests.session()
+
+
 @backoff.on_exception(backoff.expo,
                       requests.exceptions.RequestException,
                       max_tries=5,
@@ -151,14 +155,16 @@ def ingest_to_logscale(records):
     """
     try:
         logscale_token = os.environ.get("LogScaleIngestToken")
-        response = requests.post(
+        request_body = zlib.compress(json.dumps(records))
+        response = logscale_session.post(
             url=os.environ.get("LogScaleHostURL").rstrip(
                 '/')+"/api/v1/ingest/hec",
             headers={
                 "Authorization": f"Bearer {logscale_token}",
                 "Content-Type": "application/json",
+                "content-encoding": "gzip"
             },
-            data=json.dumps(records),
+            data=request_body,
             timeout=30,
         )
         if response.status_code in [400, 401, 403, 404]:
