@@ -150,8 +150,8 @@ class Eventhub:
     def send_events(self, events: List[func.EventHubEvent]):
         ##logging.info(events[0].get_body().decode())
         event_data = {}
-        event_data["event"] = [ record 
-                    for event in events 
+        event_data["event"] = [record
+                    for event in events
                         for record in json.loads(event.get_body().decode())["records"]]        
         
         #logging.info("Send events: %i events, %s", len(event_data), events)
@@ -165,16 +165,11 @@ class Eventhub:
             logging.exception("Exception occurred at start event %s", exception)
             raise exception
 
-##def main(event: func.EventHubEvent) -> None:
-def main(events: List[func.EventHubEvent]) -> None: #todo
-    """Begin main routine."""
-    #logging.info("Python eventhub trigger v1.2 function triggered with: %i events, %s", len(events), events[0].get_body().decode())
-
+def main(events: List[func.EventHubEvent]):
     utc_timestamp = (
         datetime.datetime.utcnow().replace(
             tzinfo=datetime.timezone.utc).isoformat())
     event_obj = Eventhub()
     event_obj.start_event(events)
-    ###event_obj.start_event([event])
 
     logging.info("Python eventhub trigger function executed at %s", utc_timestamp)
