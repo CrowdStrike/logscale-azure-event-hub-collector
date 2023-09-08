@@ -5,9 +5,7 @@ import datetime
 from typing import List
 import logging
 import json
-import asyncio
 import os
-import sys
 import warnings
 import backoff
 import requests
@@ -60,7 +58,7 @@ def ingest_to_logscale(records):
             raise CustomException(
                 f"Status-code {response.status_code} Exception {response.text}"
             )
-    except CustomException as exception:
+    except CustomException:
         logging.exception("CustomException in ingest to logscale")
         raise Exception
 
