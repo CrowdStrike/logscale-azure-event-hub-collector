@@ -20,15 +20,6 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 class CustomException(Exception):
     """Custom Exception raised while failure occurs."""
 
-
-class Checkpoint:
-    """Checkpoint helper class for azure function code."""
-
-    def __init__(self) -> None:
-        """Construct an instance of the class."""
-        self.connect_str = os.environ.get("AzureWebJobsStorage")
-
-
 @backoff.on_exception(backoff.expo,
                       requests.exceptions.RequestException,
                       max_tries=5,
@@ -81,95 +72,56 @@ def ingest_to_logscale(records):
         return response.json()
 
 
-class Eventhub:
-    """Eventhub helper class for azure function code."""
+def validate_size_and_ingest(
+        event_data: list):
+    """Validate event size.
 
-    def __init__(self) -> None:
-        """Construct an instance of the class."""
-        self.event_data_dict = {}
-        self.partitions_block_list = {}
+    Event size of the less than 5mb and
+    length of data less than 5000 records.
 
-    def validate_size_and_ingest(
-            self,
-            event_data: list,
-            partition_key,
-            sequence_number):
-        """Validate event size.
-
-        Event size of the less than 5mb and
-        length of data less than 5000 records.
-
-        Args:
-            event_data (list)
-            partition_id(string)
-            sequence_number(string)
-        """
-        # Checking limitation of LogScale endpoint
-        # as size of event must be less than 5 mb and
-        # length of event must be less than 5000 records.
-        try:
-            # if (
-            #     float(str(event_data).__sizeof__() / 10 ** 6) > 4.8
-            #     or len(event_data) > LOG_BATCHES
-            # ):
-            #     logging.info("Data to big splitting up")
-            #     self.validate_size_and_ingest(
-            #         event_data[: len(event_data) //
-            #                    2], partition_key, sequence_number
-            #     )
-            #     self.validate_size_and_ingest(
-            #         event_data[len(event_data) //
-            #                    2:], partition_key, sequence_number
-            #     )
-            # if (
-            #     float(str(event_data).__sizeof__() / 10 ** 6) < 4.8
-            #     and len(event_data) < LOG_BATCHES
-            # ):
-            logging.info("Sending data")
-            # Ingesting chunks of records received into LogScale Instance.
-            response = ingest_to_logscale(event_data)
-            if response is None:
-                self.partitions_block_list[partition_key] = False
-                logging.info(
-                    """Failure occurred at partition id %s so all the sequence number followed\
-                    by %s will not be updated in this Schedule""",
-                    partition_key,
-                    sequence_number)
-                return False
-            if response["text"] == "Success" and response["eventCount"] > 0:
-                logging.info(response)
-                return True
-
+    Args:
+        event_data (list)
+        partition_id(string)
+        sequence_number(string)
+    """
+    # Checking limitation of LogScale endpoint
+    # as size of event must be less than 5 mb and
+    # length of event must be less than 5000 records.
+    try:
+        logging.info("Sending data")
+        # Ingesting chunks of records received into LogScale Instance.
+        response = ingest_to_logscale(event_data)
+        if response is None:
             return False
-        except Exception as exception:
-            logging.exception(
-                "Exception occurred at events validation")
-            raise exception
-        return None
+        if response["text"] == "Success" and response["eventCount"] > 0:
+            logging.info(response)
+            return True
 
-    def send_events(self, events: List[func.EventHubEvent]):
-        ##logging.info(events[0].get_body().decode())
+        return False
+    except Exception as exception:
+        logging.exception(
+            "Exception occurred at events validation")
+        raise exception
+
+
+def start_event(events: List[func.EventHubEvent]):
+    """Set eventhub loop."""
+    try:
         event_data = {}
         event_data["event"] = [record
-                    for event in events
-                        for record in json.loads(event.get_body().decode())["records"]]        
-        
+                for event in events
+                    for record in json.loads(event.get_body().decode())["records"]]        
+    
         #logging.info("Send events: %i events, %s", len(event_data), events)
-        self.validate_size_and_ingest(event_data, events[0].partition_key, events[0].sequence_number)
-
-    def start_event(self, events: List[func.EventHubEvent]):
-        """Set eventhub loop."""
-        try:
-            self.send_events(events)
-        except Exception as exception:
-            logging.exception("Exception occurred at start event %s", exception)
-            raise exception
+        validate_size_and_ingest(event_data, events[0].partition_key, events[0].sequence_number)
+    except Exception as exception:
+        logging.exception("Exception occurred at start event %s", exception)
+        raise exception
 
 def main(events: List[func.EventHubEvent]):
     utc_timestamp = (
         datetime.datetime.utcnow().replace(
             tzinfo=datetime.timezone.utc).isoformat())
-    event_obj = Eventhub()
-    event_obj.start_event(events)
+    start_event(events)
 
     logging.info("Python eventhub trigger function executed at %s", utc_timestamp)
