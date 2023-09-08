@@ -56,19 +56,18 @@ def ingest_to_logscale(records):
             raise CustomException(
                 f"Status-code {response.status_code} Exception {response.text}"
             )
-        elif response.status_code > 300:
+        if response.status_code > 300:
             raise CustomException(
                 f"Status-code {response.status_code} Exception {response.text}"
             )
-    except CustomException:
+    except CustomException as exception:
         logging.exception("CustomException in ingest to logscale")
-        raise Exception
+        raise exception
 
     except requests.exceptions.RequestException as exception:
         logging.exception("Exception occurred while posting to LogScale")
         raise requests.exceptions.RequestException from exception
-    else:
-        return response.json()
+    return response.json()
 
 
 def validate_size_and_ingest(event_data: list):
