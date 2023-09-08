@@ -122,7 +122,6 @@ def start_event(events: List[func.EventHubEvent]):
 
 def main(events: List[func.EventHubEvent]):
     """Begin main routine."""
-
     utc_timestamp = (
         datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat()
     )
