@@ -70,7 +70,7 @@ def ingest_to_logscale(records):
     return response.json()
 
 
-def validate_size_and_ingest(event_data: list):
+def validate_size_and_ingest(event_data: dict):
     """Validate event size.
 
     Event size of the less than 5mb and
@@ -98,7 +98,7 @@ def validate_size_and_ingest(event_data: list):
         raise exception
 
 
-def transform_events(events: List[func.EventHubEvent]):
+def transform_events(events: List[func.EventHubEvent]) -> dict[str, List[str]]:
     """Set eventhub loop."""
     try:
         event_data = {}
@@ -107,6 +107,7 @@ def transform_events(events: List[func.EventHubEvent]):
             for event in events
             for record in json.loads(event.get_body().decode())["records"]
         ]
+        return event_data
 
     except Exception as exception:
         logging.exception("Exception occurred at start event %s", exception)
