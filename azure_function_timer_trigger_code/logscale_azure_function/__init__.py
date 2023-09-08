@@ -18,11 +18,14 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 class CustomException(Exception):
     """Custom Exception raised while failure occurs."""
 
-@backoff.on_exception(backoff.expo,
-                      requests.exceptions.RequestException,
-                      max_tries=5,
-                      raise_on_giveup=False,
-                      max_time=30)
+
+@backoff.on_exception(
+    backoff.expo,
+    requests.exceptions.RequestException,
+    max_tries=5,
+    raise_on_giveup=False,
+    max_time=30,
+)
 def ingest_to_logscale(records):
     """Ingesting records into LogScale Instance.
 
@@ -38,8 +41,7 @@ def ingest_to_logscale(records):
         dict: Returns the response json of POST request.
     """
     try:
-        url = os.environ.get("LogScaleHostURL").rstrip(
-                '/')+"/api/v1/ingest/hec"
+        url = os.environ.get("LogScaleHostURL").rstrip("/") + "/api/v1/ingest/hec"
         logscale_token = os.environ.get("LogScaleIngestToken")
         response = requests.post(
             url,
@@ -63,15 +65,13 @@ def ingest_to_logscale(records):
         raise Exception
 
     except requests.exceptions.RequestException as exception:
-        logging.exception(
-            "Exception occurred while posting to LogScale")
+        logging.exception("Exception occurred while posting to LogScale")
         raise requests.exceptions.RequestException from exception
     else:
         return response.json()
 
 
-def validate_size_and_ingest(
-        event_data: list):
+def validate_size_and_ingest(event_data: list):
     """Validate event size.
 
     Event size of the less than 5mb and
@@ -97,8 +97,7 @@ def validate_size_and_ingest(
 
         return False
     except Exception as exception:
-        logging.exception(
-            "Exception occurred at events validation")
+        logging.exception("Exception occurred at events validation")
         raise exception
 
 
@@ -106,20 +105,25 @@ def start_event(events: List[func.EventHubEvent]):
     """Set eventhub loop."""
     try:
         event_data = {}
-        event_data["event"] = [record
-                for event in events
-                    for record in json.loads(event.get_body().decode())["records"]]        
-    
-        #logging.info("Send events: %i events, %s", len(event_data), events)
-        validate_size_and_ingest(event_data, events[0].partition_key, events[0].sequence_number)
+        event_data["event"] = [
+            record
+            for event in events
+            for record in json.loads(event.get_body().decode())["records"]
+        ]
+
+        # logging.info("Send events: %i events, %s", len(event_data), events)
+        validate_size_and_ingest(
+            event_data, events[0].partition_key, events[0].sequence_number
+        )
     except Exception as exception:
         logging.exception("Exception occurred at start event %s", exception)
         raise exception
 
+
 def main(events: List[func.EventHubEvent]):
     utc_timestamp = (
-        datetime.datetime.utcnow().replace(
-            tzinfo=datetime.timezone.utc).isoformat())
+        datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat()
+    )
     start_event(events)
 
     logging.info("Python eventhub trigger function executed at %s", utc_timestamp)
