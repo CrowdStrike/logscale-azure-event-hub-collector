@@ -78,8 +78,6 @@ def validate_size_and_ingest(event_data: list):
 
     Args:
         event_data (list)
-        partition_id(string)
-        sequence_number(string)
     """
     # Checking limitation of LogScale endpoint
     # as size of event must be less than 5 mb and
@@ -100,7 +98,7 @@ def validate_size_and_ingest(event_data: list):
         raise exception
 
 
-def start_event(events: List[func.EventHubEvent]):
+def transform_events(events: List[func.EventHubEvent]):
     """Set eventhub loop."""
     try:
         event_data = {}
@@ -110,10 +108,6 @@ def start_event(events: List[func.EventHubEvent]):
             for record in json.loads(event.get_body().decode())["records"]
         ]
 
-        # logging.info("Send events: %i events, %s", len(event_data), events)
-        validate_size_and_ingest(
-            event_data, events[0].partition_key, events[0].sequence_number
-        )
     except Exception as exception:
         logging.exception("Exception occurred at start event %s", exception)
         raise exception
@@ -124,6 +118,10 @@ def main(events: List[func.EventHubEvent]):
     utc_timestamp = (
         datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat()
     )
-    start_event(events)
+
+    event_data = transform_events(events)
+
+    # logging.info("Send events: %i events, %s", len(event_data), events)
+    validate_size_and_ingest(event_data)
 
     logging.info("Python eventhub trigger function executed at %s", utc_timestamp)
