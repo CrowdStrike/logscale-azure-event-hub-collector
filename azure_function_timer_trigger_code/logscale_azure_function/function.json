@@ -2,10 +2,13 @@
   "scriptFile": "__init__.py",
   "bindings": [
     {
-      "name": "mytimer",
-      "type": "timerTrigger",
+      "type": "eventHubTrigger",
+      "name": "events",
       "direction": "in",
-      "schedule": "%Schedule%"
+      "eventHubName": "azuread",
+      "cardinality": "many",
+      "connection": "eventhub_connection",
+      "consumerGroup": "logscale-azure-event-hub-collector"
     }
   ]
 }
