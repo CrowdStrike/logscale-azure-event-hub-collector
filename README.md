@@ -2,6 +2,8 @@
 
 ![CrowdStrike FalconPy](https://raw.githubusercontent.com/CrowdStrike/falconpy/main/docs/asset/cs-logo.png)
 
+**The LogScale Azure Event Hub Collector is an open source project and not a CrowdStrike product. As such, it carries no formal support, expressed, or implied.** 
+
 This Azure function provides the ingest method for the LogScale Marketplace package for Microsoft 365. The initial version of this package focuses on email security events. The function collects Microsoft 365 Defender email events from Event Hub and ingests this data to LogScale.  
 If you are using this Azure function with the Microsoft 365 LogScale Marketplace package please refer to the documentation [here](https://library.humio.com/integrations-windows-microsoft-package-365) rather than the more generic and high level information included below.
 The Azure function was built for and has been tested with collecting specific Microsoft 365 Defender email data from an Event Hub (as described in above documentation link) and this is the supported use case.  However, the Azure function could be used to collect other json format event data from Event Hub and ingest to LogScale. Below are generic instructions for how to install and configure this.
