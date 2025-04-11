@@ -18,7 +18,7 @@ jobs:
       DIR_NAME: azure_function_timer_trigger_code
       JSON_FILE_NAME: arm.json
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Install more-utils
         run: sudo apt-get install moreutils
       - name: Set env
